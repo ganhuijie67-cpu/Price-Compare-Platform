@@ -11,5 +11,9 @@ router = APIRouter(tags=["compare"])
 def compare_products(request: CompareRequest) -> dict:
     """接收比价请求，并把具体业务处理交给 service 层。"""
 
-    # 路由层只负责接收请求和返回响应，不直接维护 Mock 数据。
-    return compare_products_service(request.query)
+    # 路由层只负责三件事：
+    # 1. 接收并触发 FastAPI/Pydantic 的参数校验；
+    # 2. 把结构化后的请求对象传给 service；
+    # 3. 把 service 返回的结果原样交回给客户端。
+    # 这样路由文件可以始终保持很薄，业务逻辑集中在 service 层维护。
+    return compare_products_service(request)
