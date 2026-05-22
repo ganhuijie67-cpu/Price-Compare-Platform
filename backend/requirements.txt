@@ -1,0 +1,2 @@
+# Runtime dependencies for the FastAPI backend.
+fastapi[standard]>=0.115,<1.0
