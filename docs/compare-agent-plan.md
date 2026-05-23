@@ -65,13 +65,14 @@
 4. ProductMatchTool 同款匹配工具
 5. compare_service 最小响应组装
 6. compare 接口测试
+7. MockPlatformAdapter 平台适配器
+8. MockPlatformAdapter 基础测试
 
 待补齐：
-1. MockPlatformAdapter 平台适配器
+1. 更完整的 Mock 多平台数据
 2. rank_results 排序逻辑独立出来
 3. compare_agent 或 compare_graph 编排层
-4. 更完整的 Mock 多平台数据
-5. 更清晰的 agent_trace
+4. 更清晰的 agent_trace
 ```
 
 ## 4. 推荐目录结构
@@ -110,7 +111,7 @@ compare_rank.py      负责排序、最低价、推荐平台
 
 ## 5. 分阶段推进
 
-### 阶段 1：把平台查询拆出来
+### 阶段 1：把平台查询拆出来（已完成）
 
 目标：
 
@@ -155,6 +156,33 @@ POST /api/v1/compare 仍然返回现在测试里的结果。
 
 ```text
 输入 iPhone 17 Pro 256GB 国行，接口能返回多个平台结果。
+```
+
+建议本阶段先只支持一个固定查询：
+
+```text
+iPhone 17 Pro 256GB 国行
+```
+
+Mock 数据建议先放 6 条：
+
+```text
+1. jd：iPhone 17 Pro 256GB 国行，价格 7999，自营
+2. jd：iPhone 17 Pro 128GB 国行，价格 7399，自营
+3. taobao：iPhone 17 Pro 256GB 国行，价格 7899，旗舰店
+4. taobao：iPhone 17 Pro 手机壳，价格 99，普通店铺
+5. pdd：iPhone 17 Pro 256GB 国行，价格 7699，百亿补贴店铺
+6. pdd：二手 iPhone 17 Pro 256GB 国行 99新，价格 6999，普通店铺
+```
+
+这样设计的原因：
+
+```text
+1. 有三平台同款商品，可以真正比价。
+2. 有 128GB，可以验证容量不一致时匹配分较低。
+3. 有手机壳，可以验证配件不会被当成主商品。
+4. 有二手商品，可以验证匹配分会被降低。
+5. 后续做排序和风险时，数据样例已经够用。
 ```
 
 ### 阶段 3：把排序逻辑拆出来
@@ -205,33 +233,28 @@ compare_service 变薄，只负责调用 CompareAgent。
 
 ## 6. 当前下一步建议
 
-下一步只做阶段 1：
+下一步只做阶段 2：
 
 ```text
-新建 MockPlatformAdapter，把读取 Mock 商品数据这件事从 compare_service.py 拆出去。
+扩展 compare_mock.json，让 /api/v1/compare 可以返回三平台候选商品。
 ```
 
 原因：
 
 ```text
-1. 这一步很小，不会影响接口结构。
-2. 它是以后接真实平台 API 的前置基础。
-3. 做完后 compare_service 会更容易看懂。
-4. 测试可以基本沿用当前 test_compare.py。
+1. 现在 adapter 已经拆出来了，下一步应该让 adapter 真的像“平台搜索”。
+2. 只有一条 jd 数据时，还不能验证多平台比价。
+3. 多平台 Mock 数据是后续排序、推荐平台、最低价平台的基础。
+4. 这一步仍然只改 Mock 数据和测试，不需要引入新技术。
 ```
 
 建议改动文件：
 
 ```text
-新增：
-backend/app/adapters/mock_platform.py
-
-可能新增：
-backend/app/adapters/__init__.py
-backend/tests/test_mock_platform.py
-
 修改：
-backend/app/services/compare_service.py
+mock_data/platform_products/compare_mock.json
+backend/tests/test_mock_platform.py
+backend/tests/test_compare.py
 ```
 
 暂时不要做：
@@ -242,20 +265,16 @@ backend/app/services/compare_service.py
 3. 不引入 LangGraph
 4. 不改前端
 5. 不改数据库
+6. 不拆排序工具
 ```
 
 ## 7. 下一步完成后的项目状态
 
-完成阶段 1 后，比价链路会变成：
+完成阶段 2 后，比价接口应该能回答两个问题：
 
 ```text
-routes_compare
-  -> compare_service
-  -> MockPlatformAdapter
-  -> ProductParseTool
-  -> ProductMatchTool
-  -> response builder
+1. 哪个平台最低价？
+2. 哪些商品更像用户要找的同款？
 ```
 
-这还不是真正的 LangGraph 智能体，但已经开始具备智能体的节点结构。等 adapter、match、rank 都拆清楚后，再引入 compare_agent 或 LangGraph 会更自然。
-
+这一步完成后，再进入阶段 3，把 summary 和推荐平台排序逻辑从 compare_service.py 拆到 compare_rank.py。

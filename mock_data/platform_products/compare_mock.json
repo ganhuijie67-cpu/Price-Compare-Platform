@@ -2,10 +2,81 @@
   "items": [
     {
       "platform": "jd",
-      "title": "iPhone 17 Pro 256GB 国行",
+      "platform_product_id": "jd_100001",
+      "title": "Apple iPhone 17 Pro 256GB 国行 全网通",
       "price": 7999,
-      "shop_name": "京东自营",
+      "coupon_price": null,
+      "currency": "CNY",
+      "shop_name": "Apple 产品京东自营旗舰店",
+      "shop_type": "self_operated",
+      "product_url": "https://example.com/jd/100001",
+      "image_url": "https://example.com/jd/100001.jpg",
       "risk_tags": []
+    },
+    {
+      "platform": "jd",
+      "platform_product_id": "jd_100002",
+      "title": "iPhone 17 Pro 256GB 国行 Apple 授权店",
+      "price": 8099,
+      "coupon_price": 7999,
+      "currency": "CNY",
+      "shop_name": "Apple 授权京东专营店",
+      "shop_type": "authorized_store",
+      "product_url": "https://example.com/jd/100002",
+      "image_url": "https://example.com/jd/100002.jpg",
+      "risk_tags": []
+    },
+    {
+      "platform": "taobao",
+      "platform_product_id": "tb_200001",
+      "title": "Apple iPhone 17 Pro 256GB 国行 官方旗舰店",
+      "price": 7899,
+      "coupon_price": 7799,
+      "currency": "CNY",
+      "shop_name": "Apple 官方旗舰店",
+      "shop_type": "official_flagship",
+      "product_url": "https://example.com/taobao/200001",
+      "image_url": "https://example.com/taobao/200001.jpg",
+      "risk_tags": ["coupon_uncertain"]
+    },
+    {
+      "platform": "taobao",
+      "platform_product_id": "tb_200002",
+      "title": "iPhone 17 Pro 256GB 国行 全新未拆封",
+      "price": 7699,
+      "coupon_price": null,
+      "currency": "CNY",
+      "shop_name": "数码优选店",
+      "shop_type": "marketplace",
+      "product_url": "https://example.com/taobao/200002",
+      "image_url": "https://example.com/taobao/200002.jpg",
+      "risk_tags": ["non_official_store"]
+    },
+    {
+      "platform": "pdd",
+      "platform_product_id": "pdd_300001",
+      "title": "iPhone 17 Pro 256GB 国行 百亿补贴",
+      "price": 7599,
+      "coupon_price": 7499,
+      "currency": "CNY",
+      "shop_name": "品牌手机百亿补贴店",
+      "shop_type": "marketplace",
+      "product_url": "https://example.com/pdd/300001",
+      "image_url": "https://example.com/pdd/300001.jpg",
+      "risk_tags": ["abnormal_low_price", "coupon_uncertain"]
+    },
+    {
+      "platform": "pdd",
+      "platform_product_id": "pdd_300002",
+      "title": "Apple iPhone 17 Pro 256GB 国行 全新正品",
+      "price": 7699,
+      "coupon_price": null,
+      "currency": "CNY",
+      "shop_name": "手机数码万人团",
+      "shop_type": "marketplace",
+      "product_url": "https://example.com/pdd/300002",
+      "image_url": "https://example.com/pdd/300002.jpg",
+      "risk_tags": ["after_sales_risk"]
     }
   ]
 }
