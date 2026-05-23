@@ -1,21 +1,17 @@
-import json
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from app.adapters.mock_platform import MockPlatformAdapter
 from app.schemas.compare import CompareRequest
 from app.tools.product_match import ProductMatchTool
 from app.tools.product_parse import ProductParseTool
 
 
-# 当前文件在 backend/app/services/ 下，parents[3] 回到项目根目录。
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-COMPARE_MOCK_PATH = PROJECT_ROOT / "mock_data" / "platform_products" / "compare_mock.json"
-
 # 这两个工具先作为模块级单例复用：
 # 1. 当前实现是无状态的，复用对象不会引入并发问题；
 # 2. service 调用时不用每次都重新实例化，代码也更简洁。
+MOCK_PLATFORM_ADAPTER = MockPlatformAdapter()
 PRODUCT_PARSE_TOOL = ProductParseTool()
 PRODUCT_MATCH_TOOL = ProductMatchTool()
 
@@ -23,9 +19,14 @@ PRODUCT_MATCH_TOOL = ProductMatchTool()
 def compare_products(request: CompareRequest) -> dict[str, Any]:
     """读取 Mock 商品数据，并组装文档约定的比价接口响应。"""
 
-    # 先把固定 Mock 数据读出来。
-    # 当前 compare 还没有接真实平台，所以所有候选商品都来自这份本地文件。
-    mock_data = _load_compare_mock()
+    # 平台查询逻辑已经拆到 MockPlatformAdapter：
+    # 1. service 不再关心 mock 文件放在哪里；
+    # 2. 后续如果接真实平台 API，这里更容易替换成新的 adapter；
+    # 3. service 只保留“编排流程”的职责。
+    candidate_items = MOCK_PLATFORM_ADAPTER.search(
+        request.platforms,
+        request.max_results_per_platform,
+    )
 
     # 整个响应里的时间字段统一复用同一个时间戳，
     # 这样 summary.updated_at 和 item.updated_at 就不会出现几毫秒级的偏差。
@@ -52,17 +53,9 @@ def compare_products(request: CompareRequest) -> dict[str, Any]:
     # 第二步：用解析结果去判断 Mock 商品列表里哪些是真同款。
     # 这里会给每个 item 追加 match_score、match_reasons、is_match。
 
-    # 先按请求里的平台和每平台最大返回数做一轮筛选，
-    # 尽量让后续匹配逻辑只处理“这次真正需要返回”的候选商品。
-    filtered_items = _filter_items(
-        mock_data["items"],
-        request.platforms,
-        request.max_results_per_platform,
-    )
-
     # `parsed_product` 保留了内部匹配逻辑需要的字段，例如 category；
     # 所以匹配阶段仍然使用内部解析结构，而不是上面的 normalized_product。
-    matched_items = PRODUCT_MATCH_TOOL.match_items(parsed_product, filtered_items)
+    matched_items = PRODUCT_MATCH_TOOL.match_items(parsed_product, candidate_items)
 
     # 把内部 match 结果逐条转换成接口文档里的 items 数组结构。
     # 这里会补默认值、字段名映射，以及一些当前阶段的衍生字段。
@@ -103,53 +96,6 @@ def compare_products(request: CompareRequest) -> dict[str, Any]:
         "message": "ok",
         "request_id": _build_request_id(),
     }
-
-
-def _load_compare_mock() -> dict[str, Any]:
-    """从 mock_data 目录读取当前阶段使用的固定商品数据。"""
-
-    # 明确使用 UTF-8 读取，避免中文标题在不同开发环境下出现乱码。
-    with COMPARE_MOCK_PATH.open("r", encoding="utf-8") as file:
-        return json.load(file)
-
-
-def _filter_items(
-    items: list[dict[str, Any]],
-    platforms: list[str],
-    max_results_per_platform: int,
-) -> list[dict[str, Any]]:
-    """按请求参数筛选候选商品。"""
-
-    # 如果请求里没有传 platforms，这里会得到空集合。
-    # 后面的判断逻辑会把空集合解释成“不过滤平台”。
-    platform_filter = set(platforms)
-
-    # 记录每个平台已经保留了多少条结果。
-    # 这样可以实现“每个平台最多返回 N 条”的限制。
-    results_per_platform: dict[str, int] = {}
-    filtered_items: list[dict[str, Any]] = []
-
-    for item in items:
-        # Mock 数据里如果没写平台，默认按 mock 平台处理，
-        # 这样能保证响应里至少有一个明确的平台值。
-        platform = item.get("platform", "mock")
-
-        # 只有在用户显式传了 platforms 时才启用平台过滤。
-        # `platform_filter` 为空时，这里会直接放行全部商品。
-        if platform_filter and platform not in platform_filter:
-            continue
-
-        current_count = results_per_platform.get(platform, 0)
-
-        # 超过每个平台的上限后，继续扫描后面的商品，但不再收下当前平台的新结果。
-        if current_count >= max_results_per_platform:
-            continue
-
-        # 先更新计数，再把商品加入最终返回列表。
-        results_per_platform[platform] = current_count + 1
-        filtered_items.append(item)
-
-    return filtered_items
 
 
 def _build_response_item(
